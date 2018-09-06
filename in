@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+set -e
+
+exec 3>&1 # make stdout available as fd 3 for the result
+exec 1>&2 # redirect all output to stderr for logging
+
+payload=$(mktemp)
+cat > $payload <&0
+ref=$(jq -r '.version.build // ""' < $payload)
+
+jq -n "{
+  version: {ref: $(echo $ref | jq -R .)}
+}" >&3

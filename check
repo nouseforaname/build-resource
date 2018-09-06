@@ -32,4 +32,5 @@ fly -t $TEAM login -c $API -n $TEAM -u $USERNAME -p $PASSWORD > /dev/null
 BUILDS=`fly -t $TEAM builds -j "$PIPELINE/$JOB" --json`
 SUCCEEDED_BUILDS=`echo $BUILDS | jq '.[] | select(.status == "succeeded") | [.]'`
 BUILDS_SINCE_LAST_CHECK=`echo $SUCCEEDED_BUILDS | jq ".[].name | tonumber | select( . > $LAST_SUCCESSFUL_BUILD)"`
-echo $BUILDS_SINCE_LAST_CHECK | jq -s 'map({build: .})'
+
+echo $BUILDS_SINCE_LAST_CHECK | jq -s ' map({build: ( . | tostring) })' >&3

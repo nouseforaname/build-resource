@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -e
+
+exec 3>&1 # make stdout available as fd 3 for the result
+exec 1>&2 # redirect all output to stderr for logging
+
+payload="/tmp/build-resource-request"
+cat > $payload <&0
+
+API=$(jq -r '.source.api // ""' < $payload)
+TEAM=$(jq -r '.source.team // ""' < $payload)
+USERNAME=$(jq -r '.source.username // ""' < $payload)
+PASSWORD=$(jq -r '.source.password // ""' < $payload)
+PIPELINE=$(jq -r '.source.pipeline // ""' < $payload)
+JOB="$(jq -r '(.source.job // "")' < $payload)"
+LAST_SUCCESSFUL_BUILD=$(jq -r '.version.build // 0' < $payload)
+
+# Write a dummy ~/.flyrc, so we can sync
+cat <<EOF >> ~/.flyrc
+targets:
+  $TEAM:
+    api: $API
+EOF
+
+# First make sure fly is up to date
+fly -t engineering-enablement sync > /dev/null
+
+# Then login to get a token
+fly -t $TEAM login -c $API -n $TEAM -u $USERNAME -p $PASSWORD > /dev/null
+
+# Get versions since the last BUILD
+BUILDS=`fly -t engineering-enablement builds -j "$PIPELINE/$JOB" --json`
+SUCCEEDED_BUILDS=`echo $BUILDS | jq '.[] | select(.status == "succeeded") | [.]'`
+BUILDS_SINCE_LAST_CHECK=`echo $SUCCEEDED_BUILDS | jq ".[].name | tonumber | select( . > $LAST_SUCCESSFUL_BUILD)"`
+echo $BUILDS_SINCE_LAST_CHECK | jq -s 'map({build: .})'

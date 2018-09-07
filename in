@@ -13,11 +13,6 @@ TEAM=$(jq -r '.source.team // ""' < $payload)
 PIPELINE=$(jq -r '.source.pipeline // ""' < $payload)
 JOB="$(jq -r '(.source.job // "")' < $payload)"
 
-PIPELINE="network"
-JOB="http via gorouter"
-URI_JOB=`echo $JOB | jq -sRr @uri | sed 's/%0A//g'`
-URL=$API/teams/$TEAM/pipelines/$PIPELINE/jobs/$URI_JOB/builds/$BUILD
-BUILD=100
 meta=`jq -n "[]" | jq ". + [
   {name: \"pipeline\", value: \"${PIPELINE}\"},
   {name: \"job\", value: \"${JOB}\"},

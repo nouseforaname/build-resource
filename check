@@ -12,6 +12,7 @@ TEAM=$(jq -r '.source.team // ""' < $payload)
 USERNAME=$(jq -r '.source.username // ""' < $payload)
 PASSWORD=$(jq -r '.source.password // ""' < $payload)
 PIPELINE=$(jq -r '.source.pipeline // ""' < $payload)
+SKIP_TLS_VALIDATION=$(jq -r '.source.insecure // ""' < $payload)
 JOB="$(jq -r '(.source.job // "")' < $payload)"
 LAST_SUCCESSFUL_BUILD=$(jq -r '.version.build // 0' < $payload)
 
@@ -21,12 +22,14 @@ targets:
   $TEAM:
     api: $API
 EOF
-
+if [ "$SKIP_TLS_VALIDATION"=="true" ]; then
+  skip_tls="-k ";
+fi 
 # First make sure fly is up to date
 fly -t $TEAM sync > /dev/null
 
 # Then login to get a token
-fly -t $TEAM login -c $API -n $TEAM -u $USERNAME -p $PASSWORD > /dev/null
+fly -t $TEAM login $skip_tls -c $API -n $TEAM -u $USERNAME -p $PASSWORD > /dev/null
 
 # Get versions since the last BUILD
 BUILDS=`fly -t $TEAM builds -j "$PIPELINE/$JOB" --json`

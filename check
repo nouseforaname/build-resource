@@ -16,15 +16,18 @@ SKIP_TLS_VALIDATION=$(jq -r '.source.insecure // ""' < $payload)
 JOB="$(jq -r '(.source.job // "")' < $payload)"
 LAST_SUCCESSFUL_BUILD=$(jq -r '.version.build // 0' < $payload)
 
+if [ "$SKIP_TLS_VALIDATION"=="true" ]; then
+  skip_tls="-k ";
+  insecure="insecure: true"
+fi 
 # Write a dummy ~/.flyrc, so we can sync
 cat <<EOF >> ~/.flyrc
 targets:
   $TEAM:
     api: $API
+    $insecure
 EOF
-if [ "$SKIP_TLS_VALIDATION"=="true" ]; then
-  skip_tls="-k ";
-fi 
+
 # First make sure fly is up to date
 fly -t $TEAM sync > /dev/null
 
